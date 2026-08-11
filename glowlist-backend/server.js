@@ -25,6 +25,10 @@ app.get('/', (req, res) => {
     res.send('Selamat Datang di GlowList API 💄');
 });
 
+app.listen(PORT, () => {
+    console.log(`Server GlowList jalan di http://localhost:${PORT}`)
+});
+
 app.get('/produk', (req, res) => {
     const sql = 'SELECT * FROM produk';
     db.query(sql, (err, results) => {
@@ -39,8 +43,4 @@ app.get('/kategori', (req, res) => {
         if(err) return res.status(500).json({ error:err })
             res.json(results);
     });
-});
-
-app.listen(PORT, () => {
-    console.log(`Server GlowList jalan di http://localhost:${PORT}`)
 });
