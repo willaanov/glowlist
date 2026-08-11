@@ -1,16 +1,5 @@
 const express = require('express');
 const app =  express();
-const PORT = 5000;
-
-app.use(express.json());
-
-app.get('/', (req, res) => {
-    res.send('Selamat Datang di GlowList API 💄');
-});
-
-app.listen(PORT, () => {
-    console.log(`Server GlowList jalan di http://localhost:${PORT}`)
-});
 
 const mysql = require('mysql2');
 
@@ -28,6 +17,13 @@ db.connect(err => {
         console.log('Berhasil konek ke database GlowList');
     }
 })
+const PORT = 5000;
+
+app.use(express.json());
+
+app.get('/', (req, res) => {
+    res.send('Selamat Datang di GlowList API 💄');
+});
 
 app.get('/produk', (req, res) => {
     const sql = 'SELECT * FROM produk';
@@ -43,4 +39,8 @@ app.get('/kategori', (req, res) => {
         if(err) return res.status(500).json({ error:err })
             res.json(results);
     });
+});
+
+app.listen(PORT, () => {
+    console.log(`Server GlowList jalan di http://localhost:${PORT}`)
 });
