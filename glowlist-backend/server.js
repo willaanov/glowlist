@@ -1,5 +1,10 @@
 const express = require('express');
+const cors = require('cors');
 const app = express();
+const PORT = 5000;
+
+app.use(cors());
+app.use(express.json());
 
 const mysql = require('mysql2');
 
@@ -17,9 +22,6 @@ db.connect(err => {
         console.log('Berhasil konek ke database GlowList');
     }
 })
-const PORT = 5000;
-
-app.use(express.json());
 
 app.get('/', (req, res) => {
     res.send('Selamat Datang di GlowList API 💄');
