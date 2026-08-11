@@ -1,10 +1,10 @@
 const express = require('express');
-const app =  express();
+const app = express();
 
 const mysql = require('mysql2');
 
 const db = mysql.createConnection({
-    host: 'localhost' ,
+    host: 'localhost',
     user: 'root',
     password: '',
     database: 'glowlist_db'
@@ -32,7 +32,7 @@ app.listen(PORT, () => {
 app.get('/produk', (req, res) => {
     const sql = 'SELECT * FROM produk';
     db.query(sql, (err, results) => {
-        if (err) return res.status(500).json({ error:err });
+        if (err) return res.status(500).json({ error: err });
         res.json(results);
     });
 });
@@ -40,7 +40,7 @@ app.get('/produk', (req, res) => {
 app.get('/kategori', (req, res) => {
     const sql = 'SELECT * FROM kategori';
     db.query(sql, (err, results) => {
-        if(err) return res.status(500).json({ error:err })
-            res.json(results);
+        if (err) return res.status(500).json({ error: err })
+        res.json(results);
     });
 });
