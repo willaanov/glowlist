@@ -43,16 +43,47 @@ app.post('/produk', (req, res) => {
     const { judul, deskripsi, harga, id_kategori } = req.body;
 
     if (!judul || !harga || !deskripsi) {
-        return res.status(400).json({ message:"Judul, harga dan deskripsi wajib diisi" })
+        return res.status(400).json({ message: "Judul, harga dan deskripsi wajib diisi" })
     }
 
     const sql = 'INSERT INTO produk (judul, deskripsi, harga, id_kategori, tgl_input) VALUES (?,?,?,?, NOW())';
     db.query(sql, [judul, deskripsi, harga, id_kategori], (err, result) => {
-        if (err) return res.status(500).json({ error:err.sqlMessage });
+        if (err) return res.status(500).json({ error: err.sqlMessage });
         res.json({
             message: 'Produk berhasil ditambahkan!',
             id_produk: result.insertId
         })
+    })
+})
+
+app.put('/produk/:id_produk', (req, res) => {
+    const { id_produk } = req.params;
+    const { judul, deskripsi, harga, id_kategori } = req.body;
+
+    if (!judul || !harga) {
+        return res.status(400).json({ message: 'Judul dan harga wajib diisi' });
+    }
+
+    const sql = 'UPDATE produk SET judul=?, deskripsi=?, harga=?, id_kategori=? WHERE id_produk=?';
+    db.query(sql, [judul, deskripsi, harga, id_kategori, id_produk], (err, result) => {
+        if (err) return res.status(500).json({ error: err.sqlMessage });
+        if (result.affectedRows ===0) {
+            return res.status(404).json({ message:'Produk tidak ditemukan' })
+        }
+        res.json({ message:'Produk berhasil di update'})
+    })
+
+})
+
+app.delete('/produk/:id_produk', (req, res) => {
+    const { id_produk } = req.params;
+    const sql = 'DELETE FROM produk WHERE id_produk = ?';
+    db.query(sql, [id_produk], (err, result) => {
+        if (err) return res.status(500).json({ error: err.sqlMessage });
+        if (result.affectedRows ===0) {
+            return res.status(404).json({ message:'Produk tidak ditemukan' })
+        }
+        res.json({ message: 'Produk behasil dihapus'})
     })
 })
 
