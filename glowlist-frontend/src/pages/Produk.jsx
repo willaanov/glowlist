@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 
 export default function Produk() {
     const [produk, setProduk] = useState([]);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     const getProduk = async () => {
         try {
@@ -25,12 +27,35 @@ export default function Produk() {
         return <div className="container mt-4">Sedang memuat data...</div>
     }
 
+    const handleDelete = async (id) => {
+        if (window.confirm("Yakin ingin menghapus produk ini?")) {
+            try {
+                const res = await fetch(`http://localhost:5000/produk/${id}`, {
+                    method: "DELETE",
+                });
+                if (res.ok) {
+                    alert("Produk berhasil dihapus");
+                    getProduk(); //ambil ulang data baru
+                } else {
+                    alert("Gagal mengapus produk");
+                }
+            } catch (err) {
+                console.error("Error saat delete:", err);
+                alert("Terjadi kesalahan saat menghapus data")
+            }
+        }
+    }
+
+    const handleEdit = (id) => {
+        navigate(`/produk/edit/${id}`);
+    };
+
     return (
         <div className="container mt-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
                 <h2>Daftar produk GlowList ✮⋆˙</h2>
                 <Link to="/produk/tambah" className="btn btn-primary">
-                + Tambah Produk
+                    + Tambah Produk
                 </Link>
             </div>
 
@@ -51,6 +76,20 @@ export default function Produk() {
                                 <td>{item.judul}</td>
                                 <td>{item.deskripsi}</td>
                                 <td>Rp {item.harga}</td>
+                                <td>
+                                    <button
+                                        className="btn btn-warning btn-sm me-2"
+                                        onClick={() => handleEdit(item.id_produk)}
+                                    >
+                                        Edit
+                                    </button>
+                                    <button
+                                        className="btn btn-danger btn-sm"
+                                        onClick={() => handleDelete(item.id_produk)}
+                                    >
+                                        Delete
+                                    </button>
+                                </td>
                             </tr>
                         ))
                     ) : (
