@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const authJWT = require('./middleware');
+const path = require('path');
+const multer = require('multer');
 const app = express();
 const PORT = 5000;
 
@@ -25,6 +27,20 @@ db.connect(err => {
     }
 })
 
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/');
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, uniqueSuffix + '-' + file.originalname);
+    },
+});
+
+const uploads = multer({ storage: storage });
+
 app.get('/', (req, res) => {
     res.send('Selamat Datang di GlowList API 💄');
 });
@@ -32,12 +48,12 @@ app.get('/', (req, res) => {
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 
-app.get('/pengguna/me', authJWT, (req,res) => {
+app.get('/pengguna/me', authJWT, (req, res) => {
     const id = req.user.id;
 
     const sql = `SELECT id_pengguna, nama, email, no_hp FROM pengguna WHERE id_pengguna = ?`;
-     db.query(sql, [id], (err, results) => {
-        if (err) { 
+    db.query(sql, [id], (err, results) => {
+        if (err) {
             return res.status(400).json({ message: 'Gagal mengambil data pengguna' });
         };
         res.json(results[0]);
@@ -48,27 +64,27 @@ app.post('/pengguna', async (req, res) => {
     const { nama, email, password, no_hp } = req.body;
 
     if (!nama || !email || !password) {
-        return res.status(400).json({ message: 'Nama, email dan passoword wajib diisi!'});
+        return res.status(400).json({ message: 'Nama, email dan passoword wajib diisi!' });
     }
 
-    try{
+    try {
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         const sql = 'INSERT INTO pengguna (nama, email, password, no_hp) VALUES (?,?,?,?)';
         db.query(sql, [nama, email, hashedPassword, no_hp], (err, result) => {
             if (err) {
                 if (err.code === 'ER_DUP_ENTRY') {
-                 return res.status(400).json({ message: 'Email sudah terdaftar, gunakan email lain' });
+                    return res.status(400).json({ message: 'Email sudah terdaftar, gunakan email lain' });
                 }
-                return res.status(400).json({error:err.sqlMessage});
+                return res.status(400).json({ error: err.sqlMessage });
             }
-                
+
             res.json({
                 message: 'Akun berhasil dibuat!',
                 id_pengguna: result.insertId
             });
         });
     } catch (err) {
-        res.status(500).json({ error: 'Gagal mengenkripsi password '});
+        res.status(500).json({ error: 'Gagal mengenkripsi password ' });
     }
 })
 
@@ -78,15 +94,15 @@ app.post('/login', (req, res) => {
 
     db.query(sql, [email], (err, result) => {
         if (err) return res.status(500).json({ error: err.sqlMessage });
-        if (result.length ===0) {
-            return res.status(404).json({ message: 'Akun tidak ditemukan'});
+        if (result.length === 0) {
+            return res.status(404).json({ message: 'Akun tidak ditemukan' });
         }
 
         const user = result[0];
         const passowordIsValid = bcrypt.compareSync(password, user.password);
 
         if (!passowordIsValid) {
-            return res.status(401).json({ message: 'Password salah'});
+            return res.status(401).json({ message: 'Password salah' });
         }
 
         const token = jwt.sign(
@@ -125,15 +141,16 @@ app.get('/produk/:id_produk', (req, res) => {
     });
 });
 
-app.post('/produk', (req, res) => {
+app.post('/produk', uploads.single('file'), (req, res) => {
     const { judul, deskripsi, harga, id_kategori } = req.body;
+    const nama_file = req.file ? req.file.filename : null;
 
     if (!judul || !harga || !deskripsi) {
         return res.status(400).json({ message: "Judul, harga dan deskripsi wajib diisi" })
     }
 
-    const sql = 'INSERT INTO produk (judul, deskripsi, harga, id_kategori, tgl_input) VALUES (?,?,?,?, NOW())';
-    db.query(sql, [judul, deskripsi, harga, id_kategori], (err, result) => {
+    const sql = 'INSERT INTO produk (judul, deskripsi, harga, id_kategori, nama_file, tgl_input) VALUES (?,?,?,?,?, NOW())';
+    db.query(sql, [judul, deskripsi, harga, id_kategori, nama_file], (err, result) => {
         if (err) return res.status(500).json({ error: err.sqlMessage });
         res.json({
             message: 'Produk berhasil ditambahkan!',
@@ -142,7 +159,7 @@ app.post('/produk', (req, res) => {
     })
 })
 
-app.put('/produk/:id_produk', authJWT, (req, res) => {
+app.put('/produk/:id_produk', authJWT, uploads.single('file'), (req, res) => {
     const { id_produk } = req.params;
     const { judul, deskripsi, harga, id_kategori } = req.body;
 
@@ -150,15 +167,22 @@ app.put('/produk/:id_produk', authJWT, (req, res) => {
         return res.status(400).json({ message: 'Judul dan harga wajib diisi' });
     }
 
-    const sql = 'UPDATE produk SET judul=?, deskripsi=?, harga=?, id_kategori=? WHERE id_produk=?';
-    db.query(sql, [judul, deskripsi, harga, id_kategori, id_produk], (err, result) => {
+    const cekSql = 'SELECT nama_file FROM produk WHERE id_produk =?'
+    db.query(cekSql, [id_produk], (err, result) => {
         if (err) return res.status(500).json({ error: err.sqlMessage });
-        if (result.affectedRows ===0) {
-            return res.status(404).json({ message:'Produk tidak ditemukan' })
-        }
-        res.json({ message:'Produk berhasil di update'})
-    })
 
+
+        const nama_file = req.file ? req.file.filename : result[0].nama_file;
+
+        const sql = 'UPDATE produk SET judul=?, deskripsi=?, harga=?, id_kategori=?, nama_file=? WHERE id_produk=?';
+        db.query(sql, [judul, deskripsi, harga, id_kategori, nama_file, id_produk], (err, result) => {
+            if (err) return res.status(500).json({ error: err.sqlMessage });
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ message: 'Produk tidak ditemukan' })
+            }
+            res.json({ message: 'Produk berhasil di update' })
+        })
+    })
 })
 
 app.delete('/produk/:id_produk', authJWT, (req, res) => {
@@ -166,10 +190,10 @@ app.delete('/produk/:id_produk', authJWT, (req, res) => {
     const sql = 'DELETE FROM produk WHERE id_produk = ?';
     db.query(sql, [id_produk], (err, result) => {
         if (err) return res.status(500).json({ error: err.sqlMessage });
-        if (result.affectedRows ===0) {
-            return res.status(404).json({ message:'Produk tidak ditemukan' })
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Produk tidak ditemukan' })
         }
-        res.json({ message: 'Produk behasil dihapus'})
+        res.json({ message: 'Produk behasil dihapus' })
     })
 })
 
