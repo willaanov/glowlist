@@ -48,7 +48,7 @@ export default function EditProduk() {
             try {
                 const res = await fetch(`http://localhost:5000/produk/${id}`, {
                     method: "PUT",
-                    headers: { "Content-Type": "application/json" },
+                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}`, },
                     body: JSON.stringify(formData),
                 });
                 if (res.ok) {
