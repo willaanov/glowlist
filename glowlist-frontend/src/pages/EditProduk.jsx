@@ -12,6 +12,7 @@ export default function EditProduk() {
     })
     const [loading, setLoading] = useState(true);
     const [kategori, setKategori] = useState([]);
+    const [fileBaru, setFileBaru] = useState(null);
 
     useEffect(() => {
         const getKategori = async () => {
@@ -44,12 +45,26 @@ export default function EditProduk() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        if (fileBaru && fileBaru.size > 2 * 1024 * 1024) {
+            alert("Ukuran file terlalu besar, maksimal 2mb");
+            return;
+        }
+
+        const data = new FormData();
+        data.append("judul", formData.judul);
+        data.append("deskripsi", formData.deskripsi);
+        data.append("harga", formData.harga);
+        data.append("id_kategori", formData.id_kategori);
+        if (fileBaru) {
+            data.append("file", fileBaru); //hanya kirim kalau ada foto baru
+        }
+
         if (window.confirm("Yakin ingin mengedit produk ini?")) {
             try {
                 const res = await fetch(`http://localhost:5000/produk/${id}`, {
                     method: "PUT",
-                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}`, },
-                    body: JSON.stringify(formData),
+                    headers: { Authorization: `Bearer ${localStorage.getItem("token")}`, },
+                    body: data,
                 });
                 if (res.ok) {
                     alert("Produk berhasil diperbarui!");
@@ -106,22 +121,47 @@ export default function EditProduk() {
                     />
                 </div>
 
-                    <select
-                        className="py-2 mb-3"
-                        name="id_kategori"
-                        value={formData.id_kategori}
-                        onChange={handleChange}
-                    >
-                        <option value="">Pilih Kategori</option>
+                <select
+                    className="py-2 mb-3"
+                    name="id_kategori"
+                    value={formData.id_kategori}
+                    onChange={handleChange}
+                >
+                    <option value="">Pilih Kategori</option>
 
-                        {kategori.map((item) => {
-                            return (
-                                <option key={item.id_kategori} value={item.id_kategori}>
-                                    {item.kategori}
-                                </option>
-                            )
-                        })}
-                    </select>
+                    {kategori.map((item) => {
+                        return (
+                            <option key={item.id_kategori} value={item.id_kategori}>
+                                {item.kategori}
+                            </option>
+                        )
+                    })}
+                </select>
+
+                <div className="mb-3">
+                    <label className="form-label">Foto saat ini</label>
+                    <div>
+                        {formData.nama_file ? (
+                            <img
+                                src={`http://localhost:5000/uploads/${formData.nama_file}`}
+                                alt="Foto lama"
+                                style={{ width: "120px", borderRadius: "8px" }}
+                            />
+                        ) : (
+                            <p>Tidak ada foto</p>
+                        )}
+                    </div>
+                </div>
+
+                <div className="mb-3">
+                    <label className="form-label">Ganti Foto</label>
+                    <input
+                        type="file"
+                        accept="image/*"
+                        className="form-control"
+                        onChange={(e) => setFileBaru(e.target.files[0])}
+                    />
+                </div>
 
                 <button type="submit" className="btn btn-success me-2">
                     Simpan Perubahan
